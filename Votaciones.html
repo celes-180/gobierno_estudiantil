@@ -1,0 +1,472 @@
+<!doctype html>
+<html lang="es" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Votaciones - Colegio Italiano de Guatemala</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&amp;family=Montserrat:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet">
+  <style>
+    body {
+      box-sizing: border-box;
+    }
+    * {
+      font-family: 'Montserrat', sans-serif;
+    }
+    .font-display {
+      font-family: 'Playfair Display', serif;
+    }
+    .gradient-bg {
+      background: linear-gradient(135deg, #1e3a5f 0%, #0a1628 100%);
+    }
+    .card-float {
+      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+    }
+    .card-float:hover {
+      transform: translateY(-8px) scale(1.02);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+    }
+    .nav-link {
+      position: relative;
+      transition: all 0.3s ease;
+    }
+    .nav-link::after {
+      content: '';
+      position: absolute;
+      bottom: -4px;
+      left: 50%;
+      width: 0;
+      height: 2px;
+      background: linear-gradient(90deg, #d4af37, #f4d03f);
+      transition: all 0.3s ease;
+      transform: translateX(-50%);
+    }
+    .nav-link:hover::after, .nav-link.active::after {
+      width: 100%;
+    }
+    .btn-vote {
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    .btn-vote::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      background: rgba(255,255,255,0.2);
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      transition: all 0.5s ease;
+    }
+    .btn-vote:hover::before {
+      width: 300px;
+      height: 300px;
+    }
+    .modal-overlay {
+      backdrop-filter: blur(8px);
+      animation: fadeIn 0.3s ease;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-slide-up {
+      animation: slideUp 0.5s ease forwards;
+    }
+    .gold-border {
+      border: 2px solid transparent;
+      background: linear-gradient(white, white) padding-box,
+                  linear-gradient(135deg, #d4af37, #f4d03f, #d4af37) border-box;
+    }
+    .italian-stripe {
+      background: linear-gradient(90deg, #009246 0%, #009246 33%, #ffffff 33%, #ffffff 66%, #ce2b37 66%, #ce2b37 100%);
+      height: 4px;
+    }
+  </style>
+  <style>@view-transition { navigation: auto; }</style>
+ </head>
+ <body class="h-full bg-slate-50">
+  <div id="app" class="h-full overflow-auto"><!-- Header -->
+   <header class="gradient-bg text-white sticky top-0 z-50">
+    <div class="italian-stripe"></div>
+    <div class="max-w-7xl mx-auto px-4 py-3">
+     <div class="flex items-center justify-between">
+      <div class="flex items-center gap-4"><!-- Logo img -->
+       <div class="w-14 h-14 bg-white rounded-full p-1 flex items-center justify-center shadow-lg">
+        <img src="https://geducar.com/sites/default/files/2018-05/italiano%2B.png" alt="Logo" class="w-12 h-12 object-contain">
+        <svg viewbox="0 0 100 100" class="absolute w-0 h-0"> <text x="50" y="55" text-anchor="middle" fill="#d4af37" font-size="24" font-weight="bold" font-family="serif">CIG
+         </text> <circle cx="50" cy="50" r="45" fill="none" stroke="#d4af37" stroke-width="1" />
+        </svg>
+       </div>
+       <div>
+        <h1 id="school-name" class="font-display text-xl font-bold">Colegio Italiano de Guatemala</h1>
+        <p class="text-xs text-amber-300">Gobierno Estudiantil <span id="election-year">2026</span></p>
+       </div>
+      </div>
+      <nav class="hidden md:flex gap-8"><button onclick="showSection('inicio')" class="nav-link text-sm font-medium active" data-nav="inicio">Inicio</button> <button onclick="showSection('quienes')" class="nav-link text-sm font-medium" data-nav="quienes">Quiénes Somos</button> <button onclick="showSection('candidatos')" class="nav-link text-sm font-medium" data-nav="candidatos">Candidatos</button> 
+      </nav><button onclick="toggleMobileMenu()" class="md:hidden text-white">
+       <svg class="w-6 h-6" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+       </svg></button>
+     </div>
+    </div><!-- Mobile Menu -->
+    <div id="mobile-menu" class="hidden md:hidden bg-slate-900/95 px-4 py-4">
+     <div class="flex flex-col gap-3"><button onclick="showSection('inicio'); toggleMobileMenu()" class="text-left py-2 px-4 rounded hover:bg-white/10">Inicio</button> <button onclick="showSection('quienes'); toggleMobileMenu()" class="text-left py-2 px-4 rounded hover:bg-white/10">Quiénes Somos</button> <button onclick="showSection('candidatos'); toggleMobileMenu()" class="text-left py-2 px-4 rounded hover:bg-white/10">Candidatos</button> 
+     </div>
+    </div>
+   </header><!-- Inicio Section -->
+   <section id="section-inicio" class="min-h-screen">
+    <div class="gradient-bg text-white py-20 px-4">
+     <div class="max-w-4xl mx-auto text-center">
+  <div class="mb-8 animate-slide-up">
+    <img src="https://geducar.com/sites/default/files/2018-05/italiano%2B.png" alt="Logo" class="w-32 h-32 mx-auto mb-6 object-contain">
+         <lineargradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#d4af37" />
+          <stop offset="50%" style="stop-color:#f4d03f" />
+          <stop offset="100%" style="stop-color:#d4af37" />
+         </lineargradient>
+        </defs> <circle cx="100" cy="100" r="95" fill="none" stroke="url(#goldGrad)" stroke-width="3" /> <circle cx="100" cy="100" r="85" fill="none" stroke="url(#goldGrad)" stroke-width="1" /> <path d="M60 50 L100 30 L140 50 L140 130 L100 150 L60 130 Z" fill="url(#goldGrad)" opacity="0.9" /> <text x="100" y="100" text-anchor="middle" fill="#1e3a5f" font-size="28" font-weight="bold" font-family="serif">
+        </text> <text x="100" y="120" text-anchor="middle" fill="#1e3a5f" font-size="10" font-family="sans-serif">
+         FUNDADO EN 1961
+        </text>
+       </svg>
+      </div>
+      <h2 id="welcome-title" class="font-display text-4xl md:text-5xl font-bold mb-4 animate-slide-up" style="animation-delay: 0.1s">Elecciones Gobierno Estudiantil</h2>
+      <h1 id="welcome-title" class="font-display text-4xl md:text-5xl font-bold mb-4 animate-slide-up" style="animation-delay: 0.1s">2026</h1>
+      <p class="text-xl text-slate-300 mb-8 animate-slide-up" style="animation-delay: 0.2s">Tu voz, tu voto, tu futuro</p>
+      <div class="flex flex-wrap justify-center gap-4 animate-slide-up" style="animation-delay: 0.3s"><button onclick="showSection('candidatos')" class="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 px-8 py-3 rounded-full font-semibold shadow-lg transition-all hover:scale-105"> Ver Candidatos </button> 
+      </div>
+     </div>
+    </div>
+    <div class="max-w-6xl mx-auto px-4 py-16">
+     <div class="grid md:grid-cols-3 gap-8">
+      <div class="card-float bg-white rounded-2xl p-8 text-center gold-border">
+       <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+        <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+       </div>
+       <h3 class="font-display text-xl font-bold text-slate-800 mb-2">Transparente</h3>
+       <p class="text-slate-600 text-sm">Proceso electoral justo y verificable para todos los estudiantes.</p>
+      </div>
+      <div class="card-float bg-white rounded-2xl p-8 text-center gold-border">
+       <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+        <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+       </div>
+       <h3 class="font-display text-xl font-bold text-slate-800 mb-2">Democrático</h3>
+       <p class="text-slate-600 text-sm">Cada estudiante tiene voz y voto en las decisiones.</p>
+      </div>
+      <div class="card-float bg-white rounded-2xl p-8 text-center gold-border">
+       <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+        <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+        </svg>
+       </div>
+       <h3 class="font-display text-xl font-bold text-slate-800 mb-2">Participativo</h3>
+       <p class="text-slate-600 text-sm">Involúcrate activamente en el futuro de tu colegio.</p>
+      </div>
+     </div>
+    </div>
+   </section><!-- Quiénes Somos Section -->
+   <section id="section-quienes" class="hidden min-h-screen py-16 px-4">
+    <div class="max-w-6xl mx-auto">
+     <div class="text-center mb-12">
+      <h2 class="font-display text-4xl font-bold text-slate-800 mb-4">Quiénes Somos</h2>
+      <div class="w-24 h-1 bg-gradient-to-r from-green-500 via-white to-red-500 mx-auto rounded"></div>
+     </div>
+     <div class="grid md:grid-cols-2 gap-12 items-center">
+      <div class="card-float bg-white rounded-2xl p-8 gold-border">
+       <h3 class="font-display text-2xl font-bold text-slate-800 mb-4">Gobierno Estudiantil</h3>
+       <p class="text-slate-600 mb-4">El Gobierno Estudiantil del Colegio Italiano de Guatemala es el órgano representativo de todos los estudiantes. Su misión es ser la voz de la comunidad estudiantil, promoviendo iniciativas que mejoren la experiencia educativa.</p>
+       <p class="text-slate-600 mb-4">Trabajan en conjunto con las autoridades del colegio para crear un ambiente escolar más inclusivo, dinámico y orientado al desarrollo integral de cada estudiante.</p>
+       <div class="flex gap-4 mt-6">
+        <div class="flex items-center gap-2">
+         <div class="w-3 h-3 bg-green-500 rounded-full"></div><span class="text-sm text-slate-600">RESPONSABILIDAD</span>
+        </div>
+        <div class="flex items-center gap-2">
+         <div class="w-3 h-3 bg-white border border-slate-300 rounded-full"></div><span class="text-sm text-slate-600">RESPETO</span>
+        </div>
+        <div class="flex items-center gap-2">
+         <div class="w-3 h-3 bg-red-500 rounded-full"></div><span class="text-sm text-slate-600">TRABAJO EN EQUIPO</span>
+        </div>
+        <div></div>
+       </div>
+      </div>
+      <div class="space-y-6">
+       <div class="card-float bg-gradient-to-br from-green-600 to-green-700 text-white rounded-2xl p-6">
+        <h4 class="font-bold text-lg mb-2">MISIÓN</h4>
+        <p class="text-green-100 text-sm">Formar académicamente ciudadanos emprendedores basados en el respeto, responsabilidad, lealtad, honestidad y amor al trabajo, a través de procesos de enseñanza-aprendizaje utilizando metodologías y tecnologías innovadoras con la participación activa de nuestra comunidad educativa.</p>
+       </div>
+       <div class="card-float bg-gradient-to-br from-slate-700 to-slate-800 text-white rounded-2xl p-6">
+        <h4 class="font-bold text-lg mb-2">VISIÓN</h4>
+        <p class="text-slate-300 text-sm">Ser la mejor opción educativa, que forme ciudadanos emprendedores y comprometidos, que pongan en práctica los valores y conocimientos adquiridos en pro de la sociedad guatemalteca.</p>
+       </div>
+       <div class="card-float bg-gradient-to-br from-red-600 to-red-700 text-white rounded-2xl p-6">
+        <h4 class="font-bold text-lg mb-2">VALORES</h4>
+        <p class="text-red-100 text-sm">Responsabilidad, ética, trabajo en equipo, solidaridad, toleracia, honestidad, igualdad y respeto.</p>
+       </div>
+      </div>
+     </div>
+    </div>
+   </section><!-- Candidatos Section -->
+   <section id="section-candidatos" class="hidden min-h-screen py-16 px-4 bg-gradient-to-b from-slate-50 to-slate-100">
+    <div class="max-w-6xl mx-auto">
+     <div class="text-center mb-12">
+      <h2 class="font-display text-4xl font-bold text-slate-800 mb-4">Nuestros Candidatos</h2>
+      <div class="w-24 h-1 bg-gradient-to-r from-amber-400 to-amber-600 mx-auto rounded"></div>
+      <p class="text-slate-600 mt-4">Conoce a los estudiantes que buscan representarte</p>
+     </div>
+     <div id="candidates-grid" class="grid md:grid-cols-2 lg:grid-cols-3 gap-8"><!-- Candidates will be rendered here -->
+     </div>
+    </div>
+   </section>
+   <div>
+  <!-- Footer -->
+<footer class="gradient-bg text-white py-8 px-4">
+  <div class="italian-stripe mb-6"></div>
+  <div class="max-w-6xl mx-auto text-center">
+    <p class="text-amber-300 font-display text-lg mb-2">
+      Colegio Italiano de Guatemala
+    </p>
+    <p class="text-slate-400 text-sm">
+      © 2026 Página Oficial Gobierno Estudiantil - Diplomado Páginas Web II
+    </p>
+  </div>
+</footer>
+
+</div> <!-- Cierre correcto del contenedor principal -->
+
+<script>
+
+/* ============================= */
+/*        CANDIDATES DATA        */
+/* ============================= */
+
+const candidates = [
+  {
+    id: 'ciencias',
+    name: 'Michelle Martínez',
+    position: 'Presidente',
+    grade: '4to. Bachillerato en Ciencias Biológicas',
+    photo: 'imagenes/ciencias.JPEG',
+    color: 'from-amber-500 to-amber-600',
+  },
+  {
+    id: 'basicos',
+    name: 'Sophia Bach Mérida',
+    position: 'Presidente',
+    grade: '3ro. Básico',
+    photo: 'imagenes/basicos.JPEG',
+    color: 'from-blue-500 to-blue-600',
+  },
+  {
+    id: 'contador',
+    name: 'Alejandra Panjoj',
+    position: 'Presidente',
+    grade: '5to. Perito Contador',
+    photo: 'imagenes/contador.JPEG',
+    color: 'from-blue-500 to-blue-600',
+  },
+  {
+    id: 'merca',
+    name: 'Gilian Saraí Briones Soto',
+    position: 'Presidente',
+    grade: '5to. Mercadotecnia',
+    photo: 'imagenes/merca.JPEG',
+    color: 'from-blue-500 to-blue-600',
+  },
+  {
+    id: 'constru',
+    name: 'Christian Miguel Carrillo Pirir',
+    position: 'Presidente',
+    grade: '5to. Construcción',
+    photo: 'imagenes/constru.JPEG',
+    color: 'from-blue-500 to-blue-600',
+  },
+  {
+    id: 'mecanica',
+    name: 'Emerson Samuel Hernández Iguardia',
+    position: 'Presidente',
+    grade: '5to. Mecánica',
+    photo: 'imagenes/mecanica.JPEG',
+    color: 'from-blue-500 to-blue-600',
+  }, 
+  {
+    id: 'edd',
+    name: 'Caleb Alexander Sosa Siguantay',
+    position: 'Presidente',
+    grade: '4to. EDD',
+    photo: 'imagenes/electronica.JPEG',
+    color: 'from-blue-500 to-blue-600',
+  }
+];
+
+/* ============================= */
+/*           CONFIG              */
+/* ============================= */
+
+const defaultConfig = {
+  school_name: 'Colegio Italiano de Guatemala',
+  election_year: '2025',
+  welcome_title: 'Elecciones Gobierno Estudiantil'
+};
+
+/* ============================= */
+/*         INITIALIZE            */
+/* ============================= */
+
+async function init() {
+
+  if (window.elementSdk) {
+    await window.elementSdk.init({
+      defaultConfig,
+      onConfigChange: async (config) => {
+        document.getElementById('school-name').textContent =
+          config.school_name || defaultConfig.school_name;
+
+        document.getElementById('election-year').textContent =
+          config.election_year || defaultConfig.election_year;
+
+        document.getElementById('welcome-title').textContent =
+          config.welcome_title || defaultConfig.welcome_title;
+      }
+    });
+  }
+
+  renderCandidates();
+}
+
+/* ============================= */
+/*          NAVIGATION           */
+/* ============================= */
+
+function showSection(sectionId) {
+
+  // Oculta TODAS las secciones (incluye quienes-somos y candidatos)
+  document.querySelectorAll('section').forEach(s =>
+    s.classList.add('hidden')
+  );
+
+  // Muestra la sección seleccionada
+  const target = document.getElementById(`section-${sectionId}`);
+  if (target) {
+    target.classList.remove('hidden');
+  }
+
+  // Activa botón de navegación
+  document.querySelectorAll('.nav-link').forEach(link => {
+    link.classList.remove('active');
+    if (link.dataset.nav === sectionId) {
+      link.classList.add('active');
+    }
+  });
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/* ============================= */
+/*       RENDER CANDIDATES       */
+/* ============================= */
+
+function renderCandidates() {
+
+  const grid = document.getElementById('candidates-grid');
+  if (!grid) return;
+
+  grid.innerHTML = candidates.map(candidate => {
+
+    const isImage =
+      candidate.photo.includes('.jpg') ||
+      candidate.photo.includes('.jpeg') ||
+      candidate.photo.includes('.png') ||
+      candidate.photo.includes('.webp') ||
+      candidate.photo.includes('.JPEG');
+
+    return `
+      <div class="bg-gradient-to-r from-yellow-400 to-amber-500 text-white shadow-xl rounded-2xl p-6 text-center hover:scale-105 transition duration-300">
+
+        ${
+          isImage
+          ? `<img src="${candidate.photo}"
+                 alt="${candidate.name}"
+                 class="w-50 h-50 mx-auto rounded-full object-cover border-4 border-amber-500 mb-4">`
+          : `<div class="w-50 h-50 mx-auto rounded-full bg-gradient-to-r ${candidate.color}
+                  flex items-center justify-center text-5xl text-white mb-4">
+                ${candidate.photo}
+             </div>`
+        }
+
+        <h3 class="text-xl font-bold text-slate-800">${candidate.name}</h3>
+        <p class="text-amber-600 font-semibold">${candidate.position}</p>
+        <p class="text-slate-500 text-sm">${candidate.grade}</p>
+
+        
+      </div>
+    `;
+  }).join('');
+}
+
+/* ============================= */
+/*            MODAL              */
+/* ============================= */
+
+function openCandidateModal(candidateId) {
+
+  const candidate = candidates.find(c => c.id === candidateId);
+  if (!candidate) return;
+
+  const modal = document.getElementById('candidate-modal');
+  const content = document.getElementById('modal-content');
+
+  const isImage =
+    candidate.photo.includes('.jpg') ||
+    candidate.photo.includes('.jpeg') ||
+    candidate.photo.includes('.png') ||
+    candidate.photo.includes('.webp') ||
+    candidate.photo.includes('.JPEG');
+
+  content.innerHTML = `
+    <div class="text-center mb-6">
+
+      ${
+        isImage
+        ? `<img src="${candidate.photo}"
+               class="w-28 h-28 mx-auto rounded-full object-cover border-4 border-amber-500 mb-4">`
+        : `<div class="w-28 h-28 mx-auto rounded-full bg-gradient-to-r ${candidate.color}
+                flex items-center justify-center text-5xl text-white mb-4">
+              ${candidate.photo}
+           </div>`
+      }
+
+      <h3 class="text-2xl font-bold text-slate-800">${candidate.name}</h3>
+      <p class="text-slate-500">${candidate.grade}</p>
+    </div>
+  `;
+
+  modal.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModal() {
+  document.getElementById('candidate-modal').classList.add('hidden');
+  document.body.style.overflow = '';
+}
+
+/* ============================= */
+/*             START             */
+/* ============================= */
+
+init();
+
+</script>
+</body>
+</html>
